@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap:https://olive-dental-eta.vercel.app/sitemap.xml
