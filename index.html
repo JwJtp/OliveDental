@@ -1089,28 +1089,59 @@ function toggleFaq(btn){
   document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));
   if(!wasOpen) item.classList.add('open');
 }
+// ── BLOCK SUNDAY APPOINTMENTS ──
+const appointmentDate = document.getElementById("date");
+
+appointmentDate.addEventListener("change", function () {
+  if (!this.value) return;
+
+  const [year, month, day] = this.value.split("-").map(Number);
+  const selectedDate = new Date(year, month - 1, day);
+
+  if (selectedDate.getDay() === 0) {
+    alert("Sorry! Olive Dental is closed on Sundays. Please select Monday to Saturday.");
+    this.value = "";
+  }
+});
 
 // ── BOOKING FORM ──
-function submitBooking(){
-  const fname = document.getElementById("fname").value;
-  const lname = document.getElementById("lname").value;
-  const phone = document.getElementById("phone").value;
-  const email = document.getElementById("email").value;
+
+function submitBooking() {
+  const fname = document.getElementById("fname").value.trim();
+  const lname = document.getElementById("lname").value.trim();
+  const phone = document.getElementById("phone").value.trim();
+  const email = document.getElementById("email").value.trim();
   const service = document.getElementById("service").value;
   const date = document.getElementById("date").value;
   const time = document.getElementById("time").value;
-  const notes = document.getElementById("notes").value;
+  const notes = document.getElementById("notes").value.trim();
 
-  if(fname === "" || phone === "" || email === "" || service === "" || date === "" || time === ""){
+  // Validate required fields
+  if (!fname || !phone || !email || !service || !date || !time) {
     alert("Please fill all required fields.");
     return;
   }
 
-  document.getElementById("success-name").innerHTML = fname + " " + lname;
-  document.getElementById("booking-form-inner").style.display = "none";
-  document.getElementById("booking-success").style.display = "flex";
+  // Reject Sunday bookings before opening WhatsApp
+  const [year, month, day] = date.split("-").map(Number);
+  const selectedDate = new Date(year, month - 1, day);
+
+  if (selectedDate.getDay() === 0) {
+    alert(
+      "Sorry! Olive Dental is closed on Sundays. " +
+      "Please select an appointment date from Monday to Saturday."
+    );
+
+    document.getElementById("date").value = "";
+    return;
+  }
+
+  // Continue with the existing booking flow
+  document.getElementById("success-name").textContent =
+    `${fname} ${lname}`.trim();
 
   const whatsappNumber = "916361169798";
+
   const message =
 `Hello Olive Dental Care
 
@@ -1137,8 +1168,19 @@ ${time}
 📝 Notes:
 ${notes}`;
 
-  const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
-  window.open(whatsappURL, "_blank");
+  const whatsappURL =
+    `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+
+  // Open WhatsApp only after successful validation
+  const whatsappWindow = window.open(whatsappURL, "_blank");
+
+  // Show success only if the WhatsApp window opened
+  if (whatsappWindow) {
+    document.getElementById("booking-form-inner").style.display = "none";
+    document.getElementById("booking-success").style.display = "flex";
+  } else {
+    alert("Please allow pop-ups for this website to open WhatsApp.");
+  }
 }
 
 function resetForm(){
