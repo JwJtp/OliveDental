@@ -1116,27 +1116,80 @@ function submitBooking() {
   const time = document.getElementById("time").value;
   const notes = document.getElementById("notes").value.trim();
 
-  // Validate required fields
+  // 1. Validate required fields
   if (!fname || !phone || !email || !service || !date || !time) {
     alert("Please fill all required fields.");
     return;
   }
 
-  // Reject Sunday bookings before opening WhatsApp
+  // 2. Parse the selected date
   const [year, month, day] = date.split("-").map(Number);
   const selectedDate = new Date(year, month - 1, day);
+  const now = new Date();
 
+  // 3. Reject Sunday bookings
   if (selectedDate.getDay() === 0) {
     alert(
       "Sorry! Olive Dental is closed on Sundays. " +
-      "Please select an appointment date from Monday to Saturday."
+      "Please select Monday to Saturday."
     );
-
     document.getElementById("date").value = "";
     return;
   }
 
-  // Continue with the existing booking flow
+  // 4. Convert selected time (e.g. "5:00 PM") into minutes
+  const timeMatch = time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+
+  if (!timeMatch) {
+    alert("Please select a valid appointment time.");
+    return;
+  }
+
+  let hours = Number(timeMatch[1]);
+  const minutes = Number(timeMatch[2]);
+  const period = timeMatch[3].toUpperCase();
+
+  if (hours < 1 || hours > 12 || minutes < 0 || minutes > 59) {
+    alert("Please select a valid appointment time.");
+    return;
+  }
+
+  if (period === "AM" && hours === 12) {
+    hours = 0;
+  } else if (period === "PM" && hours !== 12) {
+    hours += 12;
+  }
+
+  const selectedMinutes = hours * 60 + minutes;
+
+  // 5. Validate clinic hours: 10 AM to before 9 PM
+  if (selectedMinutes < 10 * 60 || selectedMinutes >= 21 * 60) {
+    alert(
+      "Please select an appointment time between 10:00 AM and 9:00 PM."
+    );
+    document.getElementById("time").value = "";
+    return;
+  }
+
+  // 6. Reject past times when the selected date is today
+  const isToday =
+    selectedDate.getFullYear() === now.getFullYear() &&
+    selectedDate.getMonth() === now.getMonth() &&
+    selectedDate.getDate() === now.getDate();
+
+  if (isToday) {
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    if (selectedMinutes <= currentMinutes) {
+      alert(
+        "This time has already passed. Please select a future time."
+      );
+      document.getElementById("time").value = "";
+      return;
+    }
+  }
+
+  // 7. Prepare the WhatsApp booking message
   document.getElementById("success-name").textContent =
     `${fname} ${lname}`.trim();
 
@@ -1171,10 +1224,9 @@ ${notes}`;
   const whatsappURL =
     `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 
-  // Open WhatsApp only after successful validation
+  // 8. Open WhatsApp
   const whatsappWindow = window.open(whatsappURL, "_blank");
 
-  // Show success only if the WhatsApp window opened
   if (whatsappWindow) {
     document.getElementById("booking-form-inner").style.display = "none";
     document.getElementById("booking-success").style.display = "flex";
